@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trash2, Edit2, Sun, Moon, Download, RotateCcw, Check, X } from 'lucide-react'
-import { exportData, clearAllData } from '../utils/localStorage'
+import { Trash2, Edit2, Sun, Moon, Download, RotateCcw, Check, X, LogOut } from 'lucide-react'
+import { exportData } from '../utils/localStorage'
 import { calcBestStreak, calcStreak } from '../utils/scoreCalculator'
 
 const EMOJIS = ['✅', '💪', '📚', '🏃', '🥗', '😴', '🧠', '🎯', '💧', '🌿', '⏰', '🧘', '🚶', '🍎', '☀️', '🔥', '🌙', '⚡', '🎵', '🌊']
 
-export default function Settings({ habits, activeHabits, logs, updateHabit, deleteHabit, resetToday, theme, toggleTheme }) {
+export default function Settings({ habits, activeHabits, logs, updateHabit, deleteHabit, resetToday, theme, toggleTheme, signOut, user }) {
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState('')
   const [editEmoji, setEditEmoji] = useState('')
@@ -205,7 +205,27 @@ export default function Settings({ habits, activeHabits, logs, updateHabit, dele
         </div>
       </div>
 
-      <p className="text-center text-xs text-slate-600 mt-6">DayWin v1.0 · All data stored locally</p>
+      {/* Account */}
+      <div className="bg-slate-800/60 rounded-2xl border border-slate-700/50 overflow-hidden mb-4">
+        <div className="px-4 py-3 border-b border-slate-700/50">
+          <p className="font-medium text-white">Account</p>
+        </div>
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-sm text-white font-medium">Signed in as</p>
+            <p className="text-xs text-slate-400 mt-0.5">{user?.email}</p>
+          </div>
+          <button
+            onClick={signOut}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-700 hover:bg-red-500/20 text-slate-300 hover:text-red-400 transition-colors text-sm"
+          >
+            <LogOut size={14} />
+            Sign out
+          </button>
+        </div>
+      </div>
+
+      <p className="text-center text-xs text-slate-600 mt-6">DayWin v1.0 · Data syncs across devices</p>
     </div>
   )
 }

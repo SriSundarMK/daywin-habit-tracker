@@ -4,9 +4,11 @@ import Home from './pages/Home'
 import History from './pages/History'
 import Weekly from './pages/Weekly'
 import Settings from './pages/Settings'
+import Login from './pages/Login'
 import BottomNav from './components/BottomNav'
 import { useHabits } from './hooks/useHabits'
 import { useTheme } from './hooks/useTheme'
+import { useAuth } from './hooks/useAuth'
 
 const pageVariants = {
   initial: { opacity: 0, x: 20 },
@@ -17,18 +19,31 @@ const pageVariants = {
 export default function App() {
   const [tab, setTab] = useState('home')
   const { theme, toggle: toggleTheme } = useTheme()
+  const { user, loading: authLoading, sendMagicLink, signOut } = useAuth()
   const {
-    habits, activeHabits, logs, todayLog,
+    habits, activeHabits, logs, todayLog, syncing,
     toggle, addHabit, updateHabit, deleteHabit, resetToday,
-  } = useHabits()
+  } = useHabits(user?.id)
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-4xl animate-pulse">🏆</div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Login sendMagicLink={sendMagicLink} />
+  }
 
   const pendingCount = activeHabits.filter(h => !todayLog.includes(h.id)).length
 
   const pages = {
-    home: <Home habits={habits} activeHabits={activeHabits} logs={logs} todayLog={todayLog} toggle={toggle} addHabit={addHabit} />,
+    home: <Home habits={habits} activeHabits={activeHabits} logs={logs} todayLog={todayLog} toggle={toggle} addHabit={addHabit} syncing={syncing} />,
     history: <History activeHabits={activeHabits} logs={logs} />,
     weekly: <Weekly activeHabits={activeHabits} logs={logs} />,
-    settings: <Settings habits={habits} activeHabits={activeHabits} logs={logs} updateHabit={updateHabit} deleteHabit={deleteHabit} resetToday={resetToday} theme={theme} toggleTheme={toggleTheme} />,
+    settings: <Settings habits={habits} activeHabits={activeHabits} logs={logs} updateHabit={updateHabit} deleteHabit={deleteHabit} resetToday={resetToday} theme={theme} toggleTheme={toggleTheme} signOut={signOut} user={user} />,
   }
 
   return (
