@@ -1,32 +1,30 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+
+const KEY = 'daywin_profile_id'
+
+function getOrCreateProfileId() {
+  let id = localStorage.getItem(KEY)
+  if (!id) {
+    id = crypto.randomUUID()
+    localStorage.setItem(KEY, id)
+  }
+  return id
+}
 
 export function useAuth() {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [profileId, setProfileId] = useState(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
+    setProfileId(getOrCreateProfileId())
   }, [])
 
-  const sendMagicLink = async (email) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin },
-    })
-    return { error }
+  const importProfile = (code) => {
+    const clean = code.trim()
+    if (!clean) return false
+    localStorage.setItem(KEY, clean)
+    setProfileId(clean)
+    return true
   }
 
-  const signOut = () => supabase.auth.signOut()
-
-  return { user, loading, sendMagicLink, signOut }
+  return { profileId, importProfile }
 }

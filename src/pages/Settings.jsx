@@ -1,18 +1,35 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trash2, Edit2, Sun, Moon, Download, RotateCcw, Check, X, LogOut } from 'lucide-react'
+import { Trash2, Edit2, Sun, Moon, Download, RotateCcw, Check, X, Copy, Link } from 'lucide-react'
 import { exportData } from '../utils/localStorage'
 import { calcBestStreak, calcStreak } from '../utils/scoreCalculator'
 
 const EMOJIS = ['✅', '💪', '📚', '🏃', '🥗', '😴', '🧠', '🎯', '💧', '🌿', '⏰', '🧘', '🚶', '🍎', '☀️', '🔥', '🌙', '⚡', '🎵', '🌊']
 
-export default function Settings({ habits, activeHabits, logs, updateHabit, deleteHabit, resetToday, theme, toggleTheme, signOut, user }) {
+export default function Settings({ habits, activeHabits, logs, updateHabit, deleteHabit, resetToday, theme, toggleTheme, profileId, importProfile }) {
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState('')
   const [editEmoji, setEditEmoji] = useState('')
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [syncInput, setSyncInput] = useState('')
+  const [showSyncInput, setShowSyncInput] = useState(false)
+
+  const copyCode = () => {
+    navigator.clipboard.writeText(profileId)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleImport = () => {
+    if (importProfile(syncInput)) {
+      setShowSyncInput(false)
+      setSyncInput('')
+      window.location.reload()
+    }
+  }
 
   const startEdit = (habit) => {
     setEditingId(habit.id)
@@ -205,23 +222,56 @@ export default function Settings({ habits, activeHabits, logs, updateHabit, dele
         </div>
       </div>
 
-      {/* Account */}
+      {/* Sync */}
       <div className="bg-slate-800/60 rounded-2xl border border-slate-700/50 overflow-hidden mb-4">
         <div className="px-4 py-3 border-b border-slate-700/50">
-          <p className="font-medium text-white">Account</p>
+          <p className="font-medium text-white">Sync Across Devices</p>
+          <p className="text-xs text-slate-400 mt-0.5">Use your Sync Code to access your data on another device</p>
         </div>
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-white font-medium">Signed in as</p>
-            <p className="text-xs text-slate-400 mt-0.5">{user?.email}</p>
+
+        {/* Copy sync code */}
+        <div className="px-4 py-3 border-b border-slate-700/30">
+          <p className="text-xs text-slate-400 mb-2">Your Sync Code</p>
+          <div className="flex items-center gap-2">
+            <p className="flex-1 text-xs text-slate-300 font-mono bg-slate-700 rounded-lg px-3 py-2 truncate">{profileId}</p>
+            <button
+              onClick={copyCode}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${copied ? 'bg-green-500/20 text-green-400' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+            >
+              {copied ? <Check size={13} /> : <Copy size={13} />}
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
           </div>
-          <button
-            onClick={signOut}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-700 hover:bg-red-500/20 text-slate-300 hover:text-red-400 transition-colors text-sm"
-          >
-            <LogOut size={14} />
-            Sign out
-          </button>
+          <p className="text-xs text-slate-500 mt-2">Copy this code and paste it on your other device under "Use a Sync Code"</p>
+        </div>
+
+        {/* Import sync code */}
+        <div className="px-4 py-3">
+          {!showSyncInput ? (
+            <button
+              onClick={() => setShowSyncInput(true)}
+              className="flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              <Link size={14} />
+              Use a Sync Code from another device
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-xs text-slate-400">Paste the Sync Code from your other device:</p>
+              <div className="flex gap-2">
+                <input
+                  autoFocus
+                  value={syncInput}
+                  onChange={e => setSyncInput(e.target.value)}
+                  placeholder="Paste sync code..."
+                  className="flex-1 bg-slate-700 text-white rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                />
+                <button onClick={handleImport} className="px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-500">Apply</button>
+                <button onClick={() => setShowSyncInput(false)} className="px-3 py-2 rounded-lg bg-slate-700 text-slate-400 text-xs">Cancel</button>
+              </div>
+              <p className="text-xs text-amber-400">Warning: this will replace your current data on this device.</p>
+            </div>
+          )}
         </div>
       </div>
 

@@ -8,31 +8,30 @@ const DEFAULT_HABITS = [
   { id: '3', name: 'Stretching', emoji: '🧘', active: true, sort_order: 2 },
 ]
 
-export function useHabits(userId) {
+export function useHabits(profileId) {
   const [habits, setHabits] = useState([])
   const [logs, setLogs] = useState({})
   const [syncing, setSyncing] = useState(true)
   const seeded = useRef(false)
 
-  // Load habits and logs from Supabase
   useEffect(() => {
-    if (!userId) return
+    if (!profileId) return
     let cancelled = false
+    seeded.current = false
 
     const load = async () => {
       setSyncing(true)
 
       const [{ data: habitsData }, { data: logsData }] = await Promise.all([
-        supabase.from('habits').select('*').eq('user_id', userId).order('sort_order'),
-        supabase.from('logs').select('*').eq('user_id', userId),
+        supabase.from('habits').select('*').eq('profile_id', profileId).order('sort_order'),
+        supabase.from('logs').select('*').eq('profile_id', profileId),
       ])
 
       if (cancelled) return
 
-      // Seed default habits on first use
       if (habitsData && habitsData.length === 0 && !seeded.current) {
         seeded.current = true
-        const defaults = DEFAULT_HABITS.map(h => ({ ...h, user_id: userId }))
+        const defaults = DEFAULT_HABITS.map(h => ({ ...h, profile_id: profileId }))
         await supabase.from('habits').insert(defaults)
         setHabits(DEFAULT_HABITS)
       } else {
@@ -40,16 +39,14 @@ export function useHabits(userId) {
       }
 
       const logsMap = {}
-      if (logsData) {
-        logsData.forEach(row => { logsMap[row.date] = row.habit_ids || [] })
-      }
+      if (logsData) logsData.forEach(row => { logsMap[row.date] = row.habit_ids || [] })
       setLogs(logsMap)
       setSyncing(false)
     }
 
     load()
     return () => { cancelled = true }
-  }, [userId])
+  }, [profileId])
 
   const today = todayKey()
   const todayLog = logs[today] || []
@@ -60,19 +57,17 @@ export function useHabits(userId) {
     const updated = existing.includes(habitId)
       ? existing.filter(id => id !== habitId)
       : [...existing, habitId]
-
     setLogs(prev => ({ ...prev, [today]: updated }))
-
     await supabase.from('logs').upsert(
-      { date: today, user_id: userId, habit_ids: updated, updated_at: new Date().toISOString() },
-      { onConflict: 'date,user_id' }
+      { date: today, profile_id: profileId, habit_ids: updated, updated_at: new Date().toISOString() },
+      { onConflict: 'date,profile_id' }
     )
-  }, [today, logs, userId])
+  }, [today, logs, profileId])
 
   const addHabit = useCallback(async (name, emoji) => {
     const newHabit = {
       id: Date.now().toString(),
-      user_id: userId,
+      profile_id: profileId,
       name,
       emoji: emoji || '✅',
       active: true,
@@ -80,25 +75,25 @@ export function useHabits(userId) {
     }
     setHabits(prev => [...prev, newHabit])
     await supabase.from('habits').insert(newHabit)
-  }, [habits.length, userId])
+  }, [habits.length, profileId])
 
   const updateHabit = useCallback(async (id, changes) => {
     setHabits(prev => prev.map(h => h.id === id ? { ...h, ...changes } : h))
-    await supabase.from('habits').update(changes).eq('id', id).eq('user_id', userId)
-  }, [userId])
+    await supabase.from('habits').update(changes).eq('id', id).eq('profile_id', profileId)
+  }, [profileId])
 
   const deleteHabit = useCallback(async (id) => {
     setHabits(prev => prev.filter(h => h.id !== id))
-    await supabase.from('habits').delete().eq('id', id).eq('user_id', userId)
-  }, [userId])
+    await supabase.from('habits').delete().eq('id', id).eq('profile_id', profileId)
+  }, [profileId])
 
   const resetToday = useCallback(async () => {
     setLogs(prev => ({ ...prev, [today]: [] }))
     await supabase.from('logs').upsert(
-      { date: today, user_id: userId, habit_ids: [], updated_at: new Date().toISOString() },
-      { onConflict: 'date,user_id' }
+      { date: today, profile_id: profileId, habit_ids: [], updated_at: new Date().toISOString() },
+      { onConflict: 'date,profile_id' }
     )
-  }, [today, userId])
+  }, [today, profileId])
 
   return { habits, activeHabits, logs, todayLog, syncing, toggle, addHabit, updateHabit, deleteHabit, resetToday }
 }
